@@ -19,7 +19,7 @@ The background can also be any 1,280 x 800 properly formatted picture. Same as w
 From a SteamOS command line in desktop mode, run these commands one after the other.
 
 ```
-git clone https://github.com/jlobue10/SteamDeck_rEFInd/
+git clone https://github.com/leewiscovitch/SteamDeck_rEFInd/
 cd SteamDeck_rEFInd
 chmod +x SteamDeck_rEFInd_install.sh
 ./SteamDeck_rEFInd_install.sh
