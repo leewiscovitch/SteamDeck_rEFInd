@@ -1,23 +1,35 @@
 # SteamDeck_rEFInd
 This is a simple rEFInd install script for the Steam Deck meant to provide easy dual boot setup when using both SteamOS and Windows on the internal NVMe. Since the initial version of this script, optional support has been added for Windows from the SD card, Batocera from the SD card and an example boot stanza for (K)Ubuntu. The options really are pretty limitless, but require some understanding and manual edits to the `refind.conf` file.
 
+## [**GUI Added! (README will have more detailed updates soon)**](https://github.com/jlobue10/SteamDeck_rEFInd/tree/main/GUI)
+
+If you want to try out the GUI, perform these steps.
+
+```
+git clone https://github.com/jlobue10/SteamDeck_rEFInd/
+cd SteamDeck_rEFInd
+chmod +x install-GUI.sh
+./install-GUI.sh
+```
+GUI files will be created in the `/home/deck/.SteamDeck_rEFInd/GUI/` folder, including a desktop shortcut. Please give me feedback and enjoy!
+
 ## **Script Updates and _improvements_ (Jan. 1, 2023) and outstanding issues**
 
-A systemctl daemon to always prioritize rEFInd as the top boot priority has been added. This will continue to work in the future, unless a firmware update or SteamOS permissions issue blocks setting the 'Boot Next' setting with `efibootmgr`. This is one half of a solution that mostly disregards whether the Windows EFI entry can be disabled or not by the script. Disabling the Windows EFI entry, either with EasyUEFI from Windows or from command line with the SteamOS recovery image is still recommended, especially if you are setting up a triple boot (with Batocera on SD card for instance). The other half of this solution is to install the `bootsequencer-rEFInd-first.ps1` file (under the Windows directory here in this repository) as a task from Windows Task Scheduler. Save this `bootsequencer-rEFInd-first.ps1` file somewhere to be referenced and used by Task Scheduler. Special thanks to [Reddit user lucidludic for this method and explanation](https://www.reddit.com/r/steamdeck_linux/comments/zb3l7k/comment/iyrxnzs/?utm_source=share&utm_medium=web2x&context=3). Open Task Scheduler, right-click on Task Scheduler Library and create a new folder named something like "rEFInd" then select the folder. Click "Create Basic Task", give it an appropriate name and description and click Next. Set the task to start "When I log on" and click Next, leave "Start a program" selected and click Next. In the Program/script text box enter the following (or use Browse):
+A systemctl daemon to always prioritize rEFInd as the top boot priority has been added. This will continue to work in the future, unless a firmware update or SteamOS permissions issue blocks setting the 'Boot Next' setting with `efibootmgr`. This is one half of a solution that mostly disregards whether the Windows EFI entry can be disabled or not by the script. Disabling the Windows EFI entry, either with EasyUEFI from Windows or from command line with the SteamOS recovery image is still recommended, especially if you are setting up a triple boot (with Batocera on SD card for instance). The other half of this solution is to install the `bootsequence-rEFInd-first.ps1` file (under the Windows directory here in this repository) as a task from Windows Task Scheduler. Save this `bootsequence-rEFInd-first.ps1` file somewhere to be referenced and used by Task Scheduler. Special thanks to [Reddit user lucidludic for this method and explanation](https://www.reddit.com/r/steamdeck_linux/comments/zb3l7k/comment/iyrxnzs/?utm_source=share&utm_medium=web2x&context=3). Open Task Scheduler, right-click on Task Scheduler Library and create a new folder named something like "rEFInd" then select the folder. Click "Create Basic Task", give it an appropriate name and description and click Next. Set the task to start "When I log on" and click Next, leave "Start a program" selected and click Next. In the Program/script text box enter the following (or use Browse):
 
 `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
 
 In the "Add arguments (optional)" text box enter the following (replacing the path to point to your .ps1 script file):
 
-`-executionpolicy bypass -file C:\PATH\TO\bootsequencer-rEFInd-first.ps1`
+`-executionpolicy bypass -file C:\PATH\TO\bootsequence-rEFInd-first.ps1`
 
-Click Next, select the checkbox "Open the Properties dialog..." and click Finish. In the Properties window for the new task, in General enable "Run with highest privileges" and "Hidden", and set "Configure for:" to Windows 10. Switch to the Conditions tab and ensure that "Start the task only if the computer is on AC power" is disabled. Click OK to close the Properties window.
+Click Next, select the checkbox "Open the Properties dialog..." and click Finish. In the Properties window for the new task, in General enable "Run with highest privileges" and "Hidden", and set "Configure for:" to Windows 10. Enable the "Run whether user is logged on or not," and ensure that "Do not store password," is checked.  Switch to the Conditions tab and ensure that "Start the task only if the computer is on AC power" is disabled. Click OK to close the Properties window.
 
 To check that it works, right-click the task and click Run. You may briefly see a PowerShell window appear, but this should not happen when it is normally scheduled. Open a Powershell Terminal using Run as Administrator and run this command again:
 
 `bcdedit /enum FIRMWARE`
 
-Under Firmware Boot Manager you should now see a new bootsequence value with your rEFInd GUID. Restart and rEFInd should automatically boot. Switch back to Windows, log in, and either repeat the above or simply restart to check that your automated task is working correctly.
+Under the Firmware Boot Manager ({fwbootmgr}) entry you should now see a new bootsequence value with your rEFInd GUID. Restart and rEFInd should automatically boot. Switch back to Windows, log in, and either repeat the above or simply restart to check that your automated task is working correctly.
 
 With this 2 part workaround installed, switching between SteamOS branches has also become seamless and largely worry free (from the systemctl daemon). You can now switch freely between Stable, Beta, and Preview without the need to re-run the script. The one issue that remains and will likely not be solvable without re-running the script in the future is BIOS (UEFI firmware) updates. I confirmed this for my script earlier today by downgrading from 113 to 110, reinstalling rEFInd and then re-upgrading to BIOS 113. The 113 BIOS update completely deleted the SteamOS and rEFInd EFI entries and reactivated the Windows EFI entry. I do not know if there's a way around this going forward, other than changes from InsydeH2O and/ or Valve to the actual provided UEFI firmware (which comes with the BIOS update). If somebody else figures out a method that survives a BIOS update, then that is really good and should be applauded. For now, I've updated this script to be as easy as possible in the case of a BIOS update breaking something, but there are some additional preparation steps going forward in order to not interfere with future BIOS updates.
 
@@ -40,7 +52,7 @@ UEFI firmware changes coming alongside some recent BIOS updates have caused some
 
 ## **Prerequisites and Setup**
 
-This installation script assumes that there are valid EFI boot entries for both Windows and SteamOS on the esp partition. For SteamOS there should be a valid EFI boot file located at /esp/efi/steamos/steamcl.efi . For Windows, there should be a valid EFI boot file located at /esp/efi/Microsoft/Boot/bootmgfw.efi . If you are missing either of these, or they do not function as intended, do not proceed with the installation script unless you know how to edit the boot entries in the refind.conf file to point to your correct EFI boot files for the OSes. You can confirm this by pressing Volume Up and Power buttons, then going to boot from file and selecting these manually. They should boot correctly into their respective OSes, otherwise do not proceed with the installation script (or proceed at your own risk).
+This installation script assumes that there are valid EFI boot entries for both Windows and SteamOS on the esp partition. For SteamOS there should be a valid EFI boot file located at `/esp/efi/steamos/steamcl.efi` . For Windows, there should be a valid EFI boot file located at `/esp/efi/Microsoft/Boot/bootmgfw.efi` . If you are missing either of these, or they do not function as intended, do not proceed with the installation script unless you know how to edit the boot entries in the refind.conf file to point to your correct EFI boot files for the OSes. You can confirm this by pressing Volume Up and Power buttons, then going to boot from file and selecting these manually. They should boot correctly into their respective OSes, otherwise do not proceed with the installation script (or proceed at your own risk).
 
 It should be noted that if you follow the typical setup method for dual boot, those EFI files should be in the appropriate place and valid (accurate assumption in most cases).
 
@@ -49,7 +61,9 @@ The background can also be any 1,280 x 800 properly formatted picture. Same as w
 
 **I recommend making any changes to the icons or background picture and refind.conf file _before running the installation script_.**
 
-## **Basic Installation instructions** 
+## **Installation instructions**
+
+If you've cloned my repository in the past and want to make sure that you have the latest updates, from the SteamDeck_rEFInd folder on a command line run `git status`. If you see that any files are missing or that any files need updates, you can either delete the directory and re-clone, or run `git reset --hard origin/main`. You can double check afterwards with another `git status`, which should say "up to date" if nothing is missing or changed.
 
 From a SteamOS command line in desktop mode, run these commands one after the other.
 
@@ -60,13 +74,31 @@ chmod +x SteamDeck_rEFInd_install.sh
 ./SteamDeck_rEFInd_install.sh
 ```
 
-Alternatively, if the `pacman` repositories experience an issue, you can run these last two lines instead, for a `pacman` free installation method.
+Alternatively, if the `pacman` repositories experience an issue during the `pacman` based installation, you can run these last two lines instead, for a `pacman` free installation method.
 ```
 chmod +x refind_install_no_pacman.sh
 ./refind_install_no_pacman.sh
 ```
 
 If all went well, you should have rEFInd setup with SteamOS as the default loading OS. Feel free to adjust the timeout from 5 seconds to whatever desired value in the refind.conf file. This is how long you will have to choose your OS before the default OS loads. A value of -1 for the timeout will automatically boot the default OS unless a button or trackpad is interacted with in the pre-boot sequence, after powering on. Select the desired OS using the right trackpad and the R2 (trigger) button, or with the D-Pad and A button.
+
+For additional configuration options, please refer to the rEFInd official documentation. My supplied config file uses manual OS boot stanzas on purpose to control the icon order from left to right. This feature is something that I plan to take advantage of in the config file generation (and installation) GUI that I am developing. Please feel free to deviate from this and use rEFInd's ability to detect EFI files and OSes to boot, if you want. The config file has a lot of potential options that I encourage people to explore.
+
+## **Restoring _missing_ EFI entries**
+
+In case either the SteamOS or rEFInd EFI entries are deleted (for instance by a BIOS update), you can just run the provided `restore_EFI_entries.sh` script. This script will detect if either EFI entry is missing and only re-add missing entries (no duplicates created).
+
+## **Note about systemd service**
+
+Due to the nature of SteamOS' partition structure (redundant rootfs-A and rootfs-B partitions), it may be necessary to occasionally double check whether the systemd service is still active and functioning properly. These redundant partitions are likely used for branch changes and/ or updates (or in case of failure of one or the other... not entirely sure). A useful command to check whether the systemd service is functioning properly is this.
+
+`sudo systemctl status bootnext-refind.service`
+
+If the status is anything other than active and enabled, it's possible that you may need to recopy the systemd service to `/etc/systemd/system/bootnext-refind.service` with sudo permissions. As this is a rare issue, I don't feel it's necessary to check for and automate this. If you had to recopy the systemd service onto the other redundant (now active root) partition, then you will also want to run this to start the service and enable it for future boots into SteamOS.
+
+`sudo systemctl enable --now bootnext-refind.service`
+
+I still find this systemd service method to be preferable to a script that will only launch (run in background) when a terminal is launched.
 
 ## **Necessary steps for _reinstalling Windows_**
 
@@ -84,7 +116,17 @@ You will also need to re-enable the Windows EFI boot entry to allow the Windows 
 
 ## **Additional Windows considerations _(corrupted display on boot into Windows)_**
 
-If you encounter an issue while booting up where the Windows display is corrupted to the point that it's basically unusable (not the same as the dotted vertical lines scrolling), there is a workaround to fix the issue. Boot into SteamOS and edit the `refind.conf` file using the command `sudo nano /esp/efi/refind/refind.conf` from a command line. Make sure all `resolution` lines are commented out in the `refind.conf` config file (line begins with a `#`). When this is done, press `Ctrl+x` followed by `y` then `Enter` to save and exit. If this is successful, then on next reboot, the rEFInd screen will be rotated in portrait mode. Boot into Windows, fix any resolution discrepancies (should be 1,280 x 800 for main Steam Deck display) and save those changes. You should now be able to go back into SteamOS, edit the `refind.conf` config file again and make sure that `resolution 3` is uncommented (`#` at line beginning deleted) for normal use.
+There is a newer, better fix than what was previously documented that actually prevents this issue in the first place. You can run a specific `bcdedit` command from either a command prompt or powershell (both require as administrator). This command should be run as soon as possible on a new Windows installation if a user plans to use rEFInd.
+
+Command prompt command:
+
+`bcdedit.exe -set {globalsettings} highestmode on`
+
+Powershell command:
+
+`bcdedit /set "{globalsettings}" highestmode on`
+
+(**_Old "fix"_**) If you encounter an issue while booting up where the Windows display is corrupted to the point that it's basically unusable (not the same as the dotted vertical lines scrolling), there is a workaround to fix the issue. Boot into SteamOS and edit the `refind.conf` file using the command `sudo nano /esp/efi/refind/refind.conf` from a command line. Make sure all `resolution` lines are commented out in the `refind.conf` config file (line begins with a `#`). When this is done, press `Ctrl+x` followed by `y` then `Enter` to save and exit. If this is successful, then on next reboot, the rEFInd screen will be rotated in portrait mode. Boot into Windows, fix any resolution discrepancies (should be 1,280 x 800 for main Steam Deck display) and save those changes. You should now be able to go back into SteamOS, edit the `refind.conf` config file again and make sure that `resolution 3` is uncommented (`#` at line beginning deleted) for normal use.
 
 ## **Optional Windows from Micro SD card instructions**
 
@@ -132,12 +174,18 @@ To remove the rEFInd directory from the `/esp` partition **_(be forewarned that 
 
 ## **Future plans**
 
-I have started working on a small GUI to make customization of rEFInd for a given user even easier. I realize that not everyone is comfortable with command line and config file editing. This GUI will allow selecting a new background, different icons per OS, custom boot order and priority, timeout value and whether or not the mouse is enabled for the rEFInd screen. [This is the GUI prototype so far](https://imgur.com/hqIDeMz) . Any feedback on desired features for this GUI is welcome. Thanks for using my script.
+I have started working on a small GUI to make customization of rEFInd for a given user even easier. I realize that not everyone is comfortable with command line and config file editing. This GUI will allow selecting a new background, different icons per OS, custom boot order and priority, timeout value and whether or not the mouse is enabled for the rEFInd screen. [This is the GUI prototype so far](https://i.imgur.com/JDxe03W.png) . Any feedback on desired features for this GUI is welcome. Thanks for using my script.
+
+## **Acknowledgements**
+
+Special thanks to **[DeckWizard](https://www.youtube.com/c/DeckWizard)** for extensive testing and feedback.
+
+Special thanks to Reddit user **ChewyYui** for solving the annoying Windows graphical glitch and helping to figure out the SteamOS splash screen setting from the SteamOS manual boot stanza.
+
+Credit to GitHub user **CryoByte33** (maker of [steam-deck-utilities](https://github.com/CryoByte33/steam-deck-utilities)) for zenity additions to my own code. I inspected his working examples to incorporate into some aspects of the GUI installation pop-ups.
+
+Also thank you to GitHub user **YoshiAye** for the updated background that I made default for the GUI installation.
 
 ## **Additional comments**
 
-**_It should also be noted that any rEFInd installation script that claims to be "better" but is just renaming EFI files (and/ or folders) is at a higher risk of failure and needing to be re-imaged or in need of restoring EFI files from backup (to restore proper Steam Deck functionality), or other troublehsooting methods to restore potentially corrupted EFI boot files. My script does not have this risk, as it is simply using `efibootmgr` commands as much as possible and a simple run-once systemctl daemon and Windows powershell script. Once these (systemctl daemon and powershell script) are executed on every OS launch (for SteamOS and Windows), they take up no further system resources, and pose no system risk or slowdown._**
-
-I never claimed to be the author of rEFInd. In fact, since the beginning of this script, I've linked the rEFInd webpage and encouraged people to read that resource. This script was originally coded and uploaded because the most widely known and accepted rEFInd installation method at the time (mid 2022) was janky to say the least, and it broke with every Windows update. This script has continued to receive improvements and fixes to issues as they have arisen. This code has been uploaded so people can see how my script is working and ensure there is nothing malicious going on. I am not trying to (nor do I care to) make money off of this. This is solely my contribution to the community in the absence of official dual boot. I do not try to set and force the deck user password (to be a specific password) as some other scripts have done and may do in the future (very bad practice and idea!). Please do not copy my code, make some changes (core functionality and purpose remaining intact, even with syntax differences), call it "improved" and then disparage me and my efforts. This is disrespectful (and has happened at least once already). I have done my best to support and answer everybody, and I will do my best to continue that.
-
-IF you have an idea for code or script improvement, please reach out to me. I am all for making this script as good as possible, which is why I continue work on the GUI.
+If you have an idea for code, script, or GUI improvement, please reach out to me. I am all for making this repository as good as possible. If you are going to use some aspect of my code for your own design, please give some credit or acknowledgment for the original code.
